@@ -1,27 +1,18 @@
 /**
  * solver.js - Solver Rubik 3x3
- * 
- * Menggunakan implementasi sendiri berdasarkan metode layer-by-layer (CFOP sederhana)
- * untuk menjamin solusi yang benar.
- * 
- * Karena kompleksitas solver penuh, kita menggunakan pendekatan:
- * 1. Coba gunakan cubejs library jika tersedia (via CDN)
- * 2. Fallback ke implementasi sendiri
+ * Prioritas: reverse scramble > cubejs > fallback
  */
 
 class RubikSolver {
     constructor() {
-        this.maxDepth = 25;
+        this.lastScramble = null;
     }
 
-    /**
-     * Cari solusi dari state Rubik
-     * @param {Array} state - Array 54 warna
-     * @param {Object} centers - Warna center {U, R, F, D, L, B}
-     * @returns {Object} { success: boolean, moves: string[], error: string }
-     */
+    setLastScramble(moves) {
+        this.lastScramble = [...moves];
+    }
+
     solve(state, centers) {
-        // Validasi dulu
         const validation = CubeValidator.validate(state);
         if (!validation.valid) {
             return {
@@ -31,44 +22,97 @@ class RubikSolver {
             };
         }
 
-        // Cek apakah sudah solved
         if (this.isSolved(state)) {
-            return {
-                success: true,
-                moves: [],
-                error: null
-            };
+            return { success: true, moves: [], error: null };
         }
 
-        // Coba gunakan cubejs jika tersedia
+        // Prioritas 1: reverse scramble
+        if (this.lastScramble && this.stateMatchesScramble(state)) {
+            const solution = this.reverseScramble(this.lastScramble);
+            return { success: true, moves: solution, error: null };
+        }
+
+        // Prioritas 2: cubejs
         if (typeof Cube !== 'undefined' && Cube.initSolver) {
             try {
                 return this.solveWithCubeJS(state, centers);
             } catch (e) {
-                console.warn('CubeJS solver gagal:', e);
-                // Lanjut ke fallback
+                console.warn('CubeJS gagal:', e);
             }
         }
 
-        // Fallback: gunakan solver sendiri
+        // Prioritas 3: fallback
         return this.solveWithOwnAlgorithm(state, centers);
     }
 
-    /**
-     * Solver menggunakan cubejs library
-     */
+    stateMatchesScramble(state) {
+        if (!this.lastScramble) return false;
+        const testCube = new Cube();
+        testCube.reset();
+        testCube.applyMoves(this.lastScramble);
+        const testState = testCube.getState();
+        
+        for (let i = 0; i < 54; i++) {
+            if (testState[i] !== state[i]) return false;
+        }
+        return true;
+    }
+
+    reverseScramble(scramble) {
+        const solution = [];
+        for (let i = scramble.length - 1; i >= 0; i--) {
+            solution.push(this.getInverseMove(scramble[i]));
+        }
+        return this.simplifyMoves(solution);
+    }
+
+    getInverseMove(move) {
+        if (move.endsWith("'")) return move[0];
+        if (move.endsWith('2')) return move;
+        return move + "'";
+    }
+
+    simplifyMoves(moves) {
+        if (moves.length === 0) return moves;
+
+        const moveToNum = (m) => {
+            if (m.endsWith("'")) return 3;
+            if (m.endsWith('2')) return 2;
+            return 1;
+        };
+
+        const numToMove = (face, num) => {
+            const n = ((num - 1) % 4 + 4) % 4 + 1;
+            if (n === 1) return face;
+            if (n === 2) return face + '2';
+            if (n === 3) return face + "'";
+            return face;
+        };
+
+        const stack = [];
+        for (const move of moves) {
+            const face = move[0];
+            const num = moveToNum(move);
+
+            if (stack.length > 0 && stack[stack.length - 1].face === face) {
+                stack[stack.length - 1].num += num;
+            } else {
+                stack.push({ face, num });
+            }
+        }
+
+        const result = [];
+        for (const item of stack) {
+            if (item.num % 4 === 0) continue;
+            result.push(numToMove(item.face, item.num));
+        }
+        return result;
+    }
+
     solveWithCubeJS(state, centers) {
-        // Map state ke format cubejs
-        // cubejs menggunakan facelet order: U R F D L B
-        // Kita perlu memastikan mapping warna sesuai
-        
-        // Map warna ke facelet cubejs
         const colorMap = this.buildColorMap(centers);
-        
-        // Konversi state ke string facelet cubejs
         const faceletStr = state.map(c => colorMap[c]).join('');
         
-        // Inisialisasi cubejs
         const cube = Cube.fromString(faceletStr);
         const solution = cube.solve();
         
@@ -76,177 +120,70 @@ class RubikSolver {
             throw new Error('CubeJS tidak menemukan solusi');
         }
 
-        // Parse solusi
-        const moves = this.parseSolution(solution);
-        
-        return {
-            success: true,
-            moves: moves,
-            error: null
-        };
+        return { success: true, moves: this.parseSolution(solution), error: null };
     }
 
-    /**
-     * Build mapping warna ke facelet index untuk cubejs
-     */
     buildColorMap(centers) {
-        // cubejs menggunakan index 0-5 untuk 6 warna
-        // 0=U, 1=R, 2=F, 3=D, 4=L, 5=B
-        const colorToIndex = {};
-        colorToIndex[centers.U] = '0';
-        colorToIndex[centers.R] = '1';
-        colorToIndex[centers.F] = '2';
-        colorToIndex[centers.D] = '3';
-        colorToIndex[centers.L] = '4';
-        colorToIndex[centers.B] = '5';
-        return colorToIndex;
+        const map = {};
+        map[centers.U] = '0';
+        map[centers.R] = '1';
+        map[centers.F] = '2';
+        map[centers.D] = '3';
+        map[centers.L] = '4';
+        map[centers.B] = '5';
+        return map;
     }
 
-    /**
-     * Parse string solusi menjadi array moves
-     */
     parseSolution(solution) {
         if (!solution || solution === '') return [];
-        
-        // Solusi cubejs format: "U R2 F' L D2 ..."
-        const tokens = solution.trim().split(/\s+/);
-        return tokens.map(t => {
-            // Normalisasi: pastikan format benar
-            const match = t.match(/^([UDLRFB])([2']?)$/);
-            if (match) {
-                return match[1] + (match[2] || '');
-            }
+        return solution.trim().split(/\s+/).map(t => {
+            const m = t.match(/^([UDLRFB])([2']?)$/);
+            if (m) return m[1] + (m[2] || '');
             return t;
-        });
+        }).filter(t => t);
     }
 
-    /**
-     * Solver fallback sederhana menggunakan own algorithm
-     * Untuk kondisi yang valid, kita bisa menggunakan reverse scramble approach
-     * jika kita tahu history, tapi karena ini dari arbitrary state, kita
-     * gunakan pendekatan yang lebih umum.
-     * 
-     * NOTE: Implementasi solver penuh 3x3 sangat kompleks. 
-     * Fallback ini menggunakan simple depth-first search dengan batasan
-     * untuk rubik yang sudah cukup dekat dengan solved (misal < 7 langkah).
-     * Untuk rubik yang lebih jauh, kita return error yang jelas.
-     */
     solveWithOwnAlgorithm(state, centers) {
-        // Coba cari solusi dengan BFS/DFS terbatas
-        // Karena state space terlalu besar, kita hanya bisa handle case sederhana
-        
         const cube = new Cube();
         cube.setState(state);
         
         const moves = ['U', "U'", 'U2', 'D', "D'", 'D2', 'R', "R'", 'R2', 
                        'L', "L'", 'L2', 'F', "F'", 'F2', 'B', "B'", 'B2'];
         
-        // Coba 1 langkah
-        for (const move of moves) {
-            const testCube = cube.clone();
-            testCube.move(move);
-            if (testCube.isSolved()) {
-                return { success: true, moves: [move], error: null };
-            }
-        }
-        
-        // Coba 2 langkah
-        for (const move1 of moves) {
-            for (const move2 of moves) {
-                const testCube = cube.clone();
-                testCube.move(move1);
-                testCube.move(move2);
-                if (testCube.isSolved()) {
-                    return { success: true, moves: [move1, move2], error: null };
-                }
-            }
-        }
-        
-        // Coba 3 langkah
-        for (const move1 of moves) {
-            for (const move2 of moves) {
-                for (const move3 of moves) {
-                    const testCube = cube.clone();
-                    testCube.move(move1);
-                    testCube.move(move2);
-                    testCube.move(move3);
-                    if (testCube.isSolved()) {
-                        return { success: true, moves: [move1, move2, move3], error: null };
-                    }
-                }
-            }
-        }
-
-        // Coba 4 langkah (dengan optimasi untuk menghindari redundansi)
-        for (const move1 of moves) {
-            for (const move2 of moves) {
-                if (this.isRedundant(move1, move2)) continue;
-                for (const move3 of moves) {
-                    if (this.isRedundant(move2, move3)) continue;
-                    for (const move4 of moves) {
-                        if (this.isRedundant(move3, move4)) continue;
-                        const testCube = cube.clone();
-                        testCube.move(move1);
-                        testCube.move(move2);
-                        testCube.move(move3);
-                        testCube.move(move4);
-                        if (testCube.isSolved()) {
-                            return { success: true, moves: [move1, move2, move3, move4], error: null };
-                        }
-                    }
-                }
-            }
-        }
-
-        // Coba 5 langkah
-        for (const move1 of moves) {
-            for (const move2 of moves) {
-                if (this.isRedundant(move1, move2)) continue;
-                for (const move3 of moves) {
-                    if (this.isRedundant(move2, move3)) continue;
-                    for (const move4 of moves) {
-                        if (this.isRedundant(move3, move4)) continue;
-                        for (const move5 of moves) {
-                            if (this.isRedundant(move4, move5)) continue;
-                            const testCube = cube.clone();
-                            testCube.move(move1);
-                            testCube.move(move2);
-                            testCube.move(move3);
-                            testCube.move(move4);
-                            testCube.move(move5);
-                            if (testCube.isSolved()) {
-                                return { success: true, moves: [move1, move2, move3, move4, move5], error: null };
-                            }
-                        }
-                    }
-                }
-            }
+        for (let depth = 1; depth <= 5; depth++) {
+            const result = this.searchDepth(cube, moves, [], depth);
+            if (result) return { success: true, moves: result, error: null };
         }
 
         return {
             success: false,
             moves: [],
-            error: 'Posisi Rubik terlalu jauh dari solved. Coba gunakan CubeJS library atau periksa kembali input warna.'
+            error: 'Posisi Rubik terlalu jauh dari solved. Pastikan koneksi internet untuk CubeJS.'
         };
     }
 
-    /**
-     * Cek apakah dua move redundan (tidak berguna jika berurutan)
-     */
-    isRedundant(move1, move2) {
-        const face1 = move1[0];
-        const face2 = move2[0];
-        // Move pada face yang sama secara berurutan bisa digabung
-        return face1 === face2;
+    searchDepth(cube, moves, path, maxDepth) {
+        if (path.length === maxDepth) {
+            const test = cube.clone();
+            test.applyMoves(path);
+            if (test.isSolved()) return [...path];
+            return null;
+        }
+
+        for (const move of moves) {
+            if (path.length > 0 && path[path.length - 1][0] === move[0]) continue;
+            path.push(move);
+            const result = this.searchDepth(cube, moves, path, maxDepth);
+            if (result) return result;
+            path.pop();
+        }
+        return null;
     }
 
-    /**
-     * Cek apakah state sudah solved
-     */
     isSolved(state) {
         const faces = [
-            [0, 8, 'U'], [9, 17, 'R'], [18, 26, 'F'],
-            [27, 35, 'D'], [36, 44, 'L'], [45, 53, 'B']
+            [0, 8], [9, 17], [18, 26],
+            [27, 35], [36, 44], [45, 53]
         ];
         for (const [start, end] of faces) {
             const center = state[start + 4];
@@ -257,9 +194,6 @@ class RubikSolver {
         return true;
     }
 
-    /**
-     * Generate scramble
-     */
     static generateScramble(length = 20) {
         const moves = ['U', 'D', 'R', 'L', 'F', 'B'];
         const suffixes = ['', "'", '2'];
@@ -276,12 +210,8 @@ class RubikSolver {
             scramble.push(face + suffix);
             lastFace = face;
         }
-        
         return scramble;
     }
 }
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = RubikSolver;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = RubikSolver;
