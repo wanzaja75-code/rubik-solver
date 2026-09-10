@@ -10,7 +10,6 @@ class CubeScanner {
         this.stream = null;
         this.isActive = false;
         
-        // Reference colors (RGB) - akan di-tune
         this.referenceColors = {
             'white': { r: 255, g: 255, b: 255 },
             'yellow': { r: 255, g: 213, b: 0 },
@@ -21,9 +20,6 @@ class CubeScanner {
         };
     }
 
-    /**
-     * Inisialisasi kamera
-     */
     async initCamera() {
         this.video = document.getElementById('camera-feed');
         this.canvas = document.getElementById('camera-canvas');
@@ -46,20 +42,14 @@ class CubeScanner {
         }
     }
 
-    /**
-     * Stop kamera
-     */
     stopCamera() {
         if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
+            this.stream.getTracks().forEach(t => t.stop());
             this.stream = null;
         }
         this.isActive = false;
     }
 
-    /**
-     * Ambil frame dari video, analisis 9 sticker
-     */
     captureFrame() {
         if (!this.video || !this.canvas) return null;
 
@@ -67,7 +57,6 @@ class CubeScanner {
         this.canvas.width = size;
         this.canvas.height = size;
         
-        // Crop tengah square
         const sx = (this.video.videoWidth - size) / 2;
         const sy = (this.video.videoHeight - size) / 2;
         
@@ -76,9 +65,6 @@ class CubeScanner {
         return this.analyzeImage(this.canvas);
     }
 
-    /**
-     * Analisis gambar dari file upload
-     */
     analyzeImageFromFile(file) {
         return new Promise((resolve) => {
             const img = new Image();
@@ -97,9 +83,6 @@ class CubeScanner {
         });
     }
 
-    /**
-     * Analisis canvas: ambil 9 warna dari grid 3x3
-     */
     analyzeImage(canvas) {
         const ctx = canvas.getContext('2d');
         const size = canvas.width;
@@ -108,25 +91,19 @@ class CubeScanner {
 
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 3; col++) {
-                // Ambil sampel dari tengah setiap cell
                 const cx = Math.floor(col * cellSize + cellSize / 2);
                 const cy = Math.floor(row * cellSize + cellSize / 2);
                 
-                // Ambil rata-rata dari area kecil di tengah cell
                 const sampleSize = Math.max(5, Math.floor(cellSize * 0.15));
                 const sample = this.getAverageColor(ctx, cx, cy, sampleSize);
                 
-                const classified = this.classifyColor(sample);
-                colors.push(classified);
+                colors.push(this.classifyColor(sample));
             }
         }
 
         return colors;
     }
 
-    /**
-     * Ambil rata-rata warna dari area
-     */
     getAverageColor(ctx, cx, cy, size) {
         const half = Math.floor(size / 2);
         const x = Math.max(0, cx - half);
@@ -140,7 +117,6 @@ class CubeScanner {
         let r = 0, g = 0, b = 0, count = 0;
         
         for (let i = 0; i < imageData.length; i += 4) {
-            // Skip very dark pixels (noise)
             const brightness = (imageData[i] + imageData[i+1] + imageData[i+2]) / 3;
             if (brightness < 30) continue;
             
@@ -159,53 +135,26 @@ class CubeScanner {
         };
     }
 
-    /**
-     * Klasifikasikan warna RGB ke salah satu warna Rubik
-     * Menggunakan HSV untuk akurasi lebih baik
-     */
     classifyColor(rgb) {
         const hsv = this.rgbToHsv(rgb.r, rgb.g, rgb.b);
-        
-        // Cek berdasarkan hue dan saturation
         const { h, s, v } = hsv;
         
-        // Putih: saturation rendah, value tinggi
         if (s < 0.15 && v > 0.7) return 'white';
-        
-        // Hitam/gelap: value rendah
-        if (v < 0.15) return 'white'; // fallback
-        
-        // Kuning: hue sekitar 50-70
+        if (v < 0.15) return 'white';
         if (h >= 40 && h <= 70 && s > 0.3) return 'yellow';
-        
-        // Merah: hue sekitar 0-15 atau 345-360
         if ((h >= 0 && h <= 15) || (h >= 345 && h <= 360)) {
             if (s > 0.4) return 'red';
         }
-        
-        // Oranye: hue sekitar 15-40
         if (h > 15 && h < 45 && s > 0.4) return 'orange';
-        
-        // Hijau: hue sekitar 70-160
         if (h >= 70 && h <= 160 && s > 0.3) return 'green';
-        
-        // Biru: hue sekitar 160-260
         if (h >= 160 && h <= 260 && s > 0.3) return 'blue';
-        
-        // Merah (lanjutan): hue > 300
         if (h > 300 && h < 345 && s > 0.4) return 'red';
         
-        // Fallback berdasarkan nilai RGB
         return this.classifyByRGB(rgb);
     }
 
-    /**
-     * Fallback klasifikasi berdasarkan RGB
-     */
     classifyByRGB(rgb) {
         const { r, g, b } = rgb;
-        
-        // Hitung jarak ke setiap reference color
         let minDist = Infinity;
         let bestColor = 'white';
         
@@ -220,13 +169,9 @@ class CubeScanner {
                 bestColor = color;
             }
         }
-        
         return bestColor;
     }
 
-    /**
-     * Konversi RGB ke HSV
-     */
     rgbToHsv(r, g, b) {
         r /= 255; g /= 255; b /= 255;
         
@@ -248,9 +193,6 @@ class CubeScanner {
         return { h, s, v };
     }
 
-    /**
-     * Tampilkan preview hasil scan
-     */
     renderPreview(colors, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -267,18 +209,11 @@ class CubeScanner {
 
     getColorHex(color) {
         const hex = {
-            'white': '#ffffff',
-            'yellow': '#ffd500',
-            'red': '#c41e3a',
-            'orange': '#ff5800',
-            'blue': '#0051ba',
-            'green': '#009e60'
+            'white': '#ffffff', 'yellow': '#ffd500', 'red': '#c41e3a',
+            'orange': '#ff5800', 'blue': '#0051ba', 'green': '#009e60'
         };
         return hex[color] || '#888888';
     }
 }
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CubeScanner;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = CubeScanner;
