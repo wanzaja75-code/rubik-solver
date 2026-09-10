@@ -1,6 +1,5 @@
 /**
  * app.js - Main application controller
- * Menghubungkan semua komponen
  */
 
 class App {
@@ -11,21 +10,18 @@ class App {
         this.cube3d = null;
         this.ui = null;
         
-        // Solution state
         this.solution = [];
         this.currentStep = 0;
         this.isPlaying = false;
         this.playbackSpeed = 400;
         this.playbackTimer = null;
         
-        // Scramble state
         this.scrambleMoves = [];
         
         this.init();
     }
 
     init() {
-        // Tunggu DOM siap
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setup());
         } else {
@@ -34,10 +30,8 @@ class App {
     }
 
     setup() {
-        // Init UI
         this.ui = new UIController(this);
         
-        // Init 3D cube setelah DOM ready
         setTimeout(() => {
             this.cube3d = new Cube3D('cube-3d-viewport');
             this.cube3d.updateFromState(this.cube.getState());
@@ -53,26 +47,35 @@ class App {
             this.ui.updateScanProgress();
         });
 
+        document.getElementById('btn-auto-home').addEventListener('click', () => {
+            this.ui.showSection('solution-section');
+            document.getElementById('solution-output').classList.remove('hidden');
+            document.getElementById('solution-info').classList.add('hidden');
+            setTimeout(() => this.autoScrambleAndSolve(), 200);
+        });
+
         document.getElementById('btn-help').addEventListener('click', () => {
             this.ui.showSection('help-section');
         });
 
-        // Completion modal buttons
+        // Completion modal
         document.getElementById('btn-solve-again').addEventListener('click', () => {
             document.getElementById('completion-modal').classList.add('hidden');
             this.cube.reset();
             this.solution = [];
             this.currentStep = 0;
+            if (this.cube3d) this.cube3d.updateFromState(this.cube.getState());
             this.goHome();
         });
 
         document.getElementById('btn-scramble-again').addEventListener('click', () => {
             document.getElementById('completion-modal').classList.add('hidden');
-            this.scramble();
+            setTimeout(() => this.autoScrambleAndSolve(), 100);
         });
     }
 
     goHome() {
+        this.pause();
         this.ui.showSection('home-section');
         this.scanner.stopCamera();
     }
@@ -103,27 +106,22 @@ class App {
     checkCube() {
         const state = this.cube.getState();
         
-        // Cek apakah semua terisi
         if (!CubeValidator.isComplete(state)) {
             this.ui.showError('Lengkapi semua warna Rubik terlebih dahulu.');
             return;
         }
 
-        // Validasi
         const result = CubeValidator.validate(state);
         if (!result.valid) {
             this.ui.showError('Susunan warna Rubik tidak valid. ' + result.errors.join(' '));
             return;
         }
 
-        // Valid, lanjut ke solution
         this.ui.showSection('solution-section');
         document.getElementById('solution-info').classList.remove('hidden');
+        document.getElementById('solution-output').classList.add('hidden');
         
-        // Update 3D cube
-        if (this.cube3d) {
-            this.cube3d.updateFromState(state);
-        }
+        if (this.cube3d) this.cube3d.updateFromState(state);
     }
 
     // ========== SCAN ==========
@@ -135,24 +133,20 @@ class App {
     }
 
     finishScan() {
-        // Validasi
         const state = this.cube.getState();
         const result = CubeValidator.validate(state);
         
         if (!result.valid) {
             this.ui.showError('Hasil scan tidak valid. ' + result.errors.join(' '));
-            // Tetap lanjut ke manual untuk koreksi
             this.goToManualWithScan();
             return;
         }
 
-        // Lanjut ke solution
         this.ui.showSection('solution-section');
         document.getElementById('solution-info').classList.remove('hidden');
+        document.getElementById('solution-output').classList.add('hidden');
         
-        if (this.cube3d) {
-            this.cube3d.updateFromState(state);
-        }
+        if (this.cube3d) this.cube3d.updateFromState(state);
     }
 
     goToManualWithScan() {
@@ -175,26 +169,27 @@ class App {
         this.solution = result.moves;
         this.currentStep = 0;
         
-        // Tampilkan output
         document.getElementById('solution-info').classList.add('hidden');
         document.getElementById('solution-output').classList.remove('hidden');
         document.getElementById('solution-count').textContent = this.solution.length;
-        document.getElementById('solution-algorithm').textContent = this.solution.join(' ');
+        document.getElementById('solution-algorithm').textContent = this.solution.join(' ') || '(Sudah solved)';
         
-        // Update step display
         this.ui.updateStepDisplay(0, this.solution.length, '-', 'Tekan "Mulai Menyelesaikan"');
         this.ui.updateHistory([]);
         
-        // Update 3D
-        if (this.cube3d) {
-            this.cube3d.updateFromState(state);
-        }
+        if (this.cube3d) this.cube3d.updateFromState(state);
     }
 
     startSolving() {
         this.currentStep = 0;
         this.isPlaying = false;
         this.updateStepUI();
+        // Auto start play
+        setTimeout(() => {
+            this.play();
+            document.getElementById('btn-play').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+        }, 300);
     }
 
     // ========== PLAYBACK ==========
@@ -237,7 +232,7 @@ class App {
                 document.getElementById('btn-pause').classList.add('hidden');
                 this.onSolutionComplete();
             } else {
-                this.playbackTimer = setTimeout(() => this.playNext(), 100);
+                this.playbackTimer = setTimeout(() => this.playNext(), this.playbackSpeed - 350);
             }
         });
     }
@@ -254,7 +249,6 @@ class App {
     previousStep() {
         if (this.currentStep <= 0) return;
         
-        // Undo: lakukan inverse move
         this.currentStep--;
         const move = this.solution[this.currentStep];
         const inverse = this.getInverseMove(move);
@@ -266,13 +260,9 @@ class App {
 
     restartSolution() {
         this.pause();
-        this.currentStep = 0;
         this.cube.reset();
-        // Re-apply initial state
-        // (simplified: reset to solved)
-        if (this.cube3d) {
-            this.cube3d.updateFromState(this.cube.getState());
-        }
+        this.currentStep = 0;
+        if (this.cube3d) this.cube3d.updateFromState(this.cube.getState());
         this.updateStepUI();
     }
 
@@ -286,13 +276,10 @@ class App {
     }
 
     executeMove(move, onComplete) {
-        // Update state
         this.cube.move(move);
         
-        // Animasikan 3D
         if (this.cube3d) {
             this.cube3d.animateMove(move, () => {
-                // Update 3D state setelah animasi
                 this.cube3d.updateFromState(this.cube.getState());
                 if (onComplete) onComplete();
             });
@@ -300,7 +287,6 @@ class App {
             if (onComplete) onComplete();
         }
         
-        // Update history
         this.ui.updateHistory(this.cube.history);
     }
 
@@ -337,9 +323,7 @@ class App {
         };
         
         this.ui.updateStepDisplay(
-            current, 
-            total, 
-            move, 
+            current, total, move,
             descriptions[move] || '-'
         );
     }
@@ -355,45 +339,138 @@ class App {
         this.pause();
         this.cube.reset();
         
+        if (this.cube3d) this.cube3d.updateFromState(this.cube.getState());
+        
         const scramble = RubikSolver.generateScramble(20);
         this.scrambleMoves = scramble;
+        this.solver.setLastScramble(scramble);
         
         document.getElementById('scramble-output').classList.remove('hidden');
         document.getElementById('scramble-text').textContent = scramble.join(' ');
         
-        // Animasikan scramble
-        if (this.cube3d) {
-            this.cube3d.updateFromState(this.cube.getState());
-        }
+        document.getElementById('solution-info').classList.add('hidden');
+        document.getElementById('solution-output').classList.add('hidden');
         
-        // Apply moves satu per satu dengan animasi
+        this.ui.updateStepDisplay(0, 0, '-', '⏳ Mengacak Rubik...');
+        
+        this.animateSequence(scramble, () => {
+            document.getElementById('solution-info').classList.remove('hidden');
+            document.getElementById('solution-info').querySelector('.success-msg').textContent = '✓ Rubik sudah diacak!';
+            document.getElementById('solution-output').classList.add('hidden');
+        });
+    }
+
+    animateSequence(moves, onComplete) {
         let idx = 0;
-        const applyNext = () => {
-            if (idx >= scramble.length) {
-                // Update 3D dengan state akhir
-                if (this.cube3d) {
-                    this.cube3d.updateFromState(this.cube.getState());
-                }
+        const step = () => {
+            if (idx >= moves.length) {
+                if (onComplete) onComplete();
                 return;
             }
-            const move = scramble[idx];
+            const move = moves[idx];
             this.cube.move(move);
+            
             if (this.cube3d) {
                 this.cube3d.animateMove(move, () => {
                     idx++;
-                    applyNext();
+                    setTimeout(step, 80);
                 });
             } else {
                 idx++;
-                applyNext();
+                step();
             }
         };
-        applyNext();
+        step();
     }
 
     solveScramble() {
-        // Solve the scrambled cube
-        this.findSolution();
+        if (!this.scrambleMoves || this.scrambleMoves.length === 0) {
+            alert('Tidak ada scramble aktif. Klik "Acak Rubik" dulu.');
+            return;
+        }
+
+        this.pause();
+        document.getElementById('solution-info').classList.add('hidden');
+        document.getElementById('solution-output').classList.remove('hidden');
+
+        const state = this.cube.getState();
+        const centers = this.cube.getCenters();
+        
+        const result = this.solver.solve(state, centers);
+
+        if (!result.success) {
+            this.ui.showError('Gagal mencari solusi scramble. ' + (result.error || ''));
+            return;
+        }
+
+        this.solution = result.moves;
+        this.currentStep = 0;
+
+        document.getElementById('solution-count').textContent = this.solution.length;
+        document.getElementById('solution-algorithm').textContent = this.solution.join(' ');
+        
+        this.ui.updateStepDisplay(0, this.solution.length, '-', 'Tekan Play untuk memulai');
+        this.ui.updateHistory([]);
+
+        if (this.cube3d) this.cube3d.updateFromState(state);
+
+        // Auto play
+        setTimeout(() => {
+            this.play();
+            document.getElementById('btn-play').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+        }, 500);
+    }
+
+    /**
+     * Acak otomatis, cari solusi, dan langsung mainkan
+     */
+    autoScrambleAndSolve() {
+        this.pause();
+        this.cube.reset();
+        
+        if (this.cube3d) this.cube3d.updateFromState(this.cube.getState());
+
+        // 1. Scramble
+        const scramble = RubikSolver.generateScramble(20);
+        this.scrambleMoves = scramble;
+        this.solver.setLastScramble(scramble);
+        
+        document.getElementById('scramble-output').classList.remove('hidden');
+        document.getElementById('scramble-text').textContent = scramble.join(' ');
+        document.getElementById('solution-info').classList.add('hidden');
+        document.getElementById('solution-output').classList.remove('hidden');
+
+        this.ui.updateStepDisplay(0, 0, '-', '⏳ Mengacak Rubik...');
+        this.ui.updateHistory([]);
+
+        // 2. Animasikan scramble
+        this.animateSequence(scramble, () => {
+            // 3. Cari solusi
+            const state = this.cube.getState();
+            const centers = this.cube.getCenters();
+            const result = this.solver.solve(state, centers);
+
+            if (!result.success) {
+                this.ui.showError('Gagal mencari solusi. ' + (result.error || ''));
+                return;
+            }
+
+            this.solution = result.moves;
+            this.currentStep = 0;
+
+            document.getElementById('solution-count').textContent = this.solution.length;
+            document.getElementById('solution-algorithm').textContent = this.solution.join(' ');
+            
+            this.ui.updateStepDisplay(0, this.solution.length, '-', '⏳ Memulai penyelesaian otomatis...');
+
+            // 4. Auto-play setelah jeda
+            setTimeout(() => {
+                this.play();
+                document.getElementById('btn-play').classList.add('hidden');
+                document.getElementById('btn-pause').classList.remove('hidden');
+            }, 800);
+        });
     }
 
     // ========== UTILITY ==========
@@ -410,6 +487,4 @@ class App {
 
 // ========== INITIALIZE ==========
 const app = new App();
-
-// Global reference untuk onclick handlers
 window.app = app;
