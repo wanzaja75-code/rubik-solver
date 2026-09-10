@@ -10,6 +10,7 @@ class UIController {
         this.scanFaces = ['F', 'R', 'B', 'L', 'U', 'D'];
         this.scanIndex = 0;
         this.scannedFaces = {};
+        this.tempScanColors = null;
         
         this.init();
     }
@@ -24,7 +25,6 @@ class UIController {
         this.setupTheme();
     }
 
-    // ========== COLOR PICKER ==========
     setupColorPicker() {
         const buttons = document.querySelectorAll('.color-btn');
         buttons.forEach(btn => {
@@ -36,9 +36,7 @@ class UIController {
         });
     }
 
-    // ========== MANUAL CONTROLS ==========
     setupManualControls() {
-        // Klik sticker
         document.querySelectorAll('.face .sticker').forEach(sticker => {
             sticker.addEventListener('click', (e) => {
                 const face = e.target.closest('.face').getAttribute('data-face');
@@ -51,25 +49,21 @@ class UIController {
             });
         });
 
-        // Reset
         document.getElementById('btn-reset').addEventListener('click', () => {
             this.app.resetManualInput();
             this.updateManualFromState();
         });
 
-        // Isi centers
         document.getElementById('btn-fill-centers').addEventListener('click', () => {
             this.app.fillCenters();
             this.updateManualFromState();
         });
 
-        // Hapus semua
         document.getElementById('btn-clear').addEventListener('click', () => {
             this.app.clearAllStickers();
             this.updateManualFromState();
         });
 
-        // Cek kubus
         document.getElementById('btn-check').addEventListener('click', () => {
             this.app.checkCube();
         });
@@ -100,21 +94,15 @@ class UIController {
 
     getColorHex(color) {
         const hex = {
-            'white': '#ffffff',
-            'yellow': '#ffd500',
-            'red': '#c41e3a',
-            'orange': '#ff5800',
-            'blue': '#0051ba',
-            'green': '#009e60'
+            'white': '#ffffff', 'yellow': '#ffd500', 'red': '#c41e3a',
+            'orange': '#ff5800', 'blue': '#0051ba', 'green': '#009e60'
         };
         return hex[color] || '';
     }
 
-    // ========== SCAN CONTROLS ==========
     setupScanControls() {
         document.getElementById('btn-open-camera').addEventListener('click', async () => {
-            const scanner = this.app.scanner;
-            const success = await scanner.initCamera();
+            const success = await this.app.scanner.initCamera();
             
             if (success) {
                 document.getElementById('btn-open-camera').classList.add('hidden');
@@ -126,15 +114,12 @@ class UIController {
 
         document.getElementById('btn-capture').addEventListener('click', () => {
             const colors = this.app.scanner.captureFrame();
-            if (colors) {
-                this.handleScanResult(colors);
-            }
+            if (colors) this.handleScanResult(colors);
         });
 
         document.getElementById('file-upload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
             const colors = await this.app.scanner.analyzeImageFromFile(file);
             this.handleScanResult(colors);
         });
@@ -146,7 +131,6 @@ class UIController {
         });
 
         document.getElementById('btn-correct').addEventListener('click', () => {
-            // Tampilkan grid koreksi manual
             this.app.goToManualWithScan();
         });
 
@@ -156,29 +140,21 @@ class UIController {
     }
 
     handleScanResult(colors) {
-        // Simpan hasil sementara
         this.tempScanColors = colors;
-        
-        // Tampilkan preview
         this.app.scanner.renderPreview(colors, 'scan-face-preview');
         document.getElementById('scan-result').classList.remove('hidden');
     }
 
     confirmScanResult() {
         const face = this.scanFaces[this.scanIndex];
-        
-        // Simpan hasil scan ke state
         this.app.setScanResult(face, this.tempScanColors);
         this.scannedFaces[face] = this.tempScanColors;
         
-        // Update progress
         this.scanIndex++;
         
         if (this.scanIndex >= 6) {
-            // Semua sisi sudah di-scan
             this.app.finishScan();
         } else {
-            // Lanjut ke sisi berikutnya
             this.updateScanProgress();
             document.getElementById('scan-result').classList.add('hidden');
             document.getElementById('btn-open-camera').classList.remove('hidden');
@@ -188,18 +164,13 @@ class UIController {
 
     updateScanProgress() {
         const faceNames = {
-            'F': 'Depan',
-            'R': 'Kanan',
-            'B': 'Belakang',
-            'L': 'Kiri',
-            'U': 'Atas',
-            'D': 'Bawah'
+            'F': 'Depan', 'R': 'Kanan', 'B': 'Belakang',
+            'L': 'Kiri', 'U': 'Atas', 'D': 'Bawah'
         };
         
         const text = document.getElementById('scan-step-text');
         text.textContent = `Langkah ${this.scanIndex + 1}/6: Foto sisi ${faceNames[this.scanFaces[this.scanIndex]]}`;
         
-        // Update dots
         const dots = document.querySelectorAll('.step-dot');
         dots.forEach((dot, i) => {
             dot.classList.remove('active', 'done');
@@ -208,7 +179,6 @@ class UIController {
         });
     }
 
-    // ========== SOLUTION CONTROLS ==========
     setupSolutionControls() {
         document.getElementById('btn-find-solution').addEventListener('click', () => {
             this.app.findSolution();
@@ -218,10 +188,9 @@ class UIController {
             const alg = document.getElementById('solution-algorithm').textContent;
             navigator.clipboard.writeText(alg).then(() => {
                 const btn = document.getElementById('btn-copy-solution');
+                const orig = btn.textContent;
                 btn.textContent = '✓ Tersalin!';
-                setTimeout(() => {
-                    btn.textContent = '📋 Salin Solusi';
-                }, 2000);
+                setTimeout(() => { btn.textContent = orig; }, 2000);
             });
         });
 
@@ -240,9 +209,15 @@ class UIController {
         document.getElementById('btn-solve-scramble').addEventListener('click', () => {
             this.app.solveScramble();
         });
+
+        const autoBtn = document.getElementById('btn-auto-scramble-solve');
+        if (autoBtn) {
+            autoBtn.addEventListener('click', () => {
+                this.app.autoScrambleAndSolve();
+            });
+        }
     }
 
-    // ========== PLAYBACK CONTROLS ==========
     setupPlaybackControls() {
         document.getElementById('btn-play').addEventListener('click', () => {
             this.app.play();
@@ -273,7 +248,6 @@ class UIController {
         });
     }
 
-    // ========== MOVE BUTTONS ==========
     setupMoveButtons() {
         document.querySelectorAll('.btn-move').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -283,7 +257,6 @@ class UIController {
         });
     }
 
-    // ========== THEME ==========
     setupTheme() {
         const toggle = document.getElementById('theme-toggle');
         const saved = localStorage.getItem('rubik-theme');
@@ -307,7 +280,6 @@ class UIController {
         });
     }
 
-    // ========== UTILITY ==========
     showError(msg) {
         const el = document.getElementById('manual-error');
         if (el) {
@@ -344,7 +316,4 @@ class UIController {
     }
 }
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UIController;
-}
+if (typeof module !== 'undefined' && module.exports) module.exports = UIController;
