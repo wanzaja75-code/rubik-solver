@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/cubejs@1.0.0/lib/cube.min.js"></script>
 </head>
 <body>
-    <!-- Header -->
     <header>
         <div class="header-content">
             <h1>Rubik Solver</h1>
@@ -19,7 +18,7 @@
     </header>
 
     <main>
-        <!-- HOME SECTION -->
+        <!-- HOME -->
         <section id="home-section" class="section active">
             <div class="home-buttons">
                 <button id="btn-manual" class="btn btn-primary btn-large">
@@ -30,6 +29,10 @@
                     <span class="btn-icon">📷</span>
                     <span>Scan Rubik</span>
                 </button>
+                <button id="btn-auto-home" class="btn btn-primary btn-large">
+                    <span class="btn-icon">⚡</span>
+                    <span>Acak &amp; Selesaikan Otomatis</span>
+                </button>
                 <button id="btn-help" class="btn btn-outline">
                     <span class="btn-icon">❓</span>
                     <span>Cara Menggunakan</span>
@@ -37,7 +40,7 @@
             </div>
         </section>
 
-        <!-- MANUAL INPUT SECTION -->
+        <!-- MANUAL -->
         <section id="manual-section" class="section">
             <div class="section-header">
                 <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
@@ -157,7 +160,7 @@
             </div>
         </section>
 
-        <!-- SCAN SECTION -->
+        <!-- SCAN -->
         <section id="scan-section" class="section">
             <div class="section-header">
                 <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
@@ -210,7 +213,7 @@
             </div>
         </section>
 
-        <!-- SOLUTION SECTION -->
+        <!-- SOLUTION -->
         <section id="solution-section" class="section">
             <div class="section-header">
                 <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
@@ -233,12 +236,10 @@
                     </div>
                 </div>
 
-                <!-- 3D Cube -->
                 <div class="cube-3d-container">
                     <div id="cube-3d-viewport"></div>
                 </div>
 
-                <!-- Step Info -->
                 <div class="step-info">
                     <div class="step-counter">
                         <span>Langkah:</span>
@@ -251,7 +252,6 @@
                     <div class="step-description" id="step-description">-</div>
                 </div>
 
-                <!-- Playback Controls -->
                 <div class="playback-controls">
                     <button id="btn-prev" class="btn btn-control">⏮</button>
                     <button id="btn-play" class="btn btn-control btn-play">▶</button>
@@ -260,19 +260,16 @@
                     <button id="btn-restart" class="btn btn-control">↻</button>
                 </div>
 
-                <!-- Speed Slider -->
                 <div class="speed-control">
                     <label>Lambat</label>
                     <input type="range" id="speed-slider" min="100" max="1000" value="400" step="50">
                     <label>Cepat</label>
                 </div>
 
-                <!-- Manual Move Button -->
                 <div class="manual-move">
                     <button id="btn-do-move" class="btn btn-primary btn-large">Lakukan Langkah</button>
                 </div>
 
-                <!-- Manual Move Controls -->
                 <details class="move-controls-details">
                     <summary>Kontrol Manual</summary>
                     <div class="move-buttons-grid">
@@ -309,15 +306,17 @@
                     </div>
                 </details>
 
-                <!-- History -->
                 <div class="history-section">
                     <h4>Riwayat Gerakan</h4>
                     <div id="move-history" class="move-history">-</div>
                 </div>
 
-                <!-- Scramble -->
+                <!-- Scramble & Auto Solve -->
                 <div class="scramble-section">
-                    <button id="btn-scramble" class="btn btn-outline">🎲 Acak Rubik</button>
+                    <div class="scramble-buttons">
+                        <button id="btn-scramble" class="btn btn-outline">🎲 Acak Rubik</button>
+                        <button id="btn-auto-scramble-solve" class="btn btn-primary">⚡ Acak &amp; Selesaikan Otomatis</button>
+                    </div>
                     <div id="scramble-output" class="scramble-output hidden">
                         <p>Scramble: <code id="scramble-text"></code></p>
                         <button id="btn-solve-scramble" class="btn btn-sm btn-primary">Selesaikan Scramble</button>
@@ -325,7 +324,6 @@
                 </div>
             </div>
 
-            <!-- Notasi -->
             <details class="notation-details">
                 <summary>📖 Notasi Rubik</summary>
                 <div class="notation-content">
@@ -338,7 +336,7 @@
             </details>
         </section>
 
-        <!-- HELP SECTION -->
+        <!-- HELP -->
         <section id="help-section" class="section">
             <div class="section-header">
                 <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
@@ -357,6 +355,9 @@
                 <h3>4. Menyelesaikan</h3>
                 <p>Gunakan mode otomatis (Play) atau manual (Lakukan Langkah) untuk menyelesaikan Rubik. Rubik 3D akan menunjukkan layer mana yang diputar.</p>
 
+                <h3>5. Acak &amp; Selesaikan Otomatis</h3>
+                <p>Klik tombol "⚡ Acak &amp; Selesaikan Otomatis" untuk mengacak Rubik secara random, kemudian solver akan langsung menyelesaikannya secara otomatis dengan animasi.</p>
+
                 <h3>Notasi Rubik</h3>
                 <ul>
                     <li><strong>U</strong> = Atas (Up)</li>
@@ -371,7 +372,7 @@
             </div>
         </section>
 
-        <!-- COMPLETION MODAL -->
+        <!-- MODAL -->
         <div id="completion-modal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-emoji">🎉</div>
