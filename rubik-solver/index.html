@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rubik Solver 3x3</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cubejs@1.0.0/lib/cube.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <h1>Rubik Solver</h1>
+            <p class="subtitle">Selesaikan Rubik 3x3 kamu dengan mudah</p>
+            <button id="theme-toggle" class="theme-btn" aria-label="Ganti tema">🌙</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- HOME SECTION -->
+        <section id="home-section" class="section active">
+            <div class="home-buttons">
+                <button id="btn-manual" class="btn btn-primary btn-large">
+                    <span class="btn-icon">✏️</span>
+                    <span>Masukkan Manual</span>
+                </button>
+                <button id="btn-scan" class="btn btn-secondary btn-large">
+                    <span class="btn-icon">📷</span>
+                    <span>Scan Rubik</span>
+                </button>
+                <button id="btn-help" class="btn btn-outline">
+                    <span class="btn-icon">❓</span>
+                    <span>Cara Menggunakan</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- MANUAL INPUT SECTION -->
+        <section id="manual-section" class="section">
+            <div class="section-header">
+                <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
+                <h2>Input Manual</h2>
+            </div>
+
+            <div class="color-picker">
+                <p class="picker-label">Pilih warna, lalu klik sticker:</p>
+                <div class="color-buttons">
+                    <button class="color-btn active" data-color="white" style="background:#ffffff" title="Putih"></button>
+                    <button class="color-btn" data-color="yellow" style="background:#ffd500" title="Kuning"></button>
+                    <button class="color-btn" data-color="red" style="background:#c41e3a" title="Merah"></button>
+                    <button class="color-btn" data-color="orange" style="background:#ff5800" title="Oranye"></button>
+                    <button class="color-btn" data-color="blue" style="background:#0051ba" title="Biru"></button>
+                    <button class="color-btn" data-color="green" style="background:#009e60" title="Hijau"></button>
+                </div>
+            </div>
+
+            <div class="manual-controls">
+                <button id="btn-reset" class="btn btn-sm">🔄 Reset</button>
+                <button id="btn-fill-centers" class="btn btn-sm">🎯 Isi Center</button>
+                <button id="btn-clear" class="btn btn-sm">🗑️ Hapus Semua</button>
+                <button id="btn-check" class="btn btn-sm btn-primary">✓ Cek Kubus</button>
+            </div>
+
+            <div id="manual-error" class="error-message hidden"></div>
+
+            <div class="cube-2d-container">
+                <div class="face-group">
+                    <div class="face-label">Atas (U)</div>
+                    <div class="face" id="face-U" data-face="U">
+                        <div class="sticker" data-idx="0"></div>
+                        <div class="sticker" data-idx="1"></div>
+                        <div class="sticker" data-idx="2"></div>
+                        <div class="sticker" data-idx="3"></div>
+                        <div class="sticker" data-idx="4"></div>
+                        <div class="sticker" data-idx="5"></div>
+                        <div class="sticker" data-idx="6"></div>
+                        <div class="sticker" data-idx="7"></div>
+                        <div class="sticker" data-idx="8"></div>
+                    </div>
+                </div>
+
+                <div class="faces-row">
+                    <div class="face-group">
+                        <div class="face-label">Kiri (L)</div>
+                        <div class="face" id="face-L" data-face="L">
+                            <div class="sticker" data-idx="0"></div>
+                            <div class="sticker" data-idx="1"></div>
+                            <div class="sticker" data-idx="2"></div>
+                            <div class="sticker" data-idx="3"></div>
+                            <div class="sticker" data-idx="4"></div>
+                            <div class="sticker" data-idx="5"></div>
+                            <div class="sticker" data-idx="6"></div>
+                            <div class="sticker" data-idx="7"></div>
+                            <div class="sticker" data-idx="8"></div>
+                        </div>
+                    </div>
+                    <div class="face-group">
+                        <div class="face-label">Depan (F)</div>
+                        <div class="face" id="face-F" data-face="F">
+                            <div class="sticker" data-idx="0"></div>
+                            <div class="sticker" data-idx="1"></div>
+                            <div class="sticker" data-idx="2"></div>
+                            <div class="sticker" data-idx="3"></div>
+                            <div class="sticker" data-idx="4"></div>
+                            <div class="sticker" data-idx="5"></div>
+                            <div class="sticker" data-idx="6"></div>
+                            <div class="sticker" data-idx="7"></div>
+                            <div class="sticker" data-idx="8"></div>
+                        </div>
+                    </div>
+                    <div class="face-group">
+                        <div class="face-label">Kanan (R)</div>
+                        <div class="face" id="face-R" data-face="R">
+                            <div class="sticker" data-idx="0"></div>
+                            <div class="sticker" data-idx="1"></div>
+                            <div class="sticker" data-idx="2"></div>
+                            <div class="sticker" data-idx="3"></div>
+                            <div class="sticker" data-idx="4"></div>
+                            <div class="sticker" data-idx="5"></div>
+                            <div class="sticker" data-idx="6"></div>
+                            <div class="sticker" data-idx="7"></div>
+                            <div class="sticker" data-idx="8"></div>
+                        </div>
+                    </div>
+                    <div class="face-group">
+                        <div class="face-label">Belakang (B)</div>
+                        <div class="face" id="face-B" data-face="B">
+                            <div class="sticker" data-idx="0"></div>
+                            <div class="sticker" data-idx="1"></div>
+                            <div class="sticker" data-idx="2"></div>
+                            <div class="sticker" data-idx="3"></div>
+                            <div class="sticker" data-idx="4"></div>
+                            <div class="sticker" data-idx="5"></div>
+                            <div class="sticker" data-idx="6"></div>
+                            <div class="sticker" data-idx="7"></div>
+                            <div class="sticker" data-idx="8"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="face-group">
+                    <div class="face-label">Bawah (D)</div>
+                    <div class="face" id="face-D" data-face="D">
+                        <div class="sticker" data-idx="0"></div>
+                        <div class="sticker" data-idx="1"></div>
+                        <div class="sticker" data-idx="2"></div>
+                        <div class="sticker" data-idx="3"></div>
+                        <div class="sticker" data-idx="4"></div>
+                        <div class="sticker" data-idx="5"></div>
+                        <div class="sticker" data-idx="6"></div>
+                        <div class="sticker" data-idx="7"></div>
+                        <div class="sticker" data-idx="8"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCAN SECTION -->
+        <section id="scan-section" class="section">
+            <div class="section-header">
+                <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
+                <h2>Scan Rubik</h2>
+            </div>
+
+            <div class="scan-progress">
+                <div class="progress-steps" id="progress-steps">
+                    <span class="step-dot active"></span>
+                    <span class="step-dot"></span>
+                    <span class="step-dot"></span>
+                    <span class="step-dot"></span>
+                    <span class="step-dot"></span>
+                    <span class="step-dot"></span>
+                </div>
+                <p class="progress-text" id="scan-step-text">Langkah 1/6: Foto sisi Depan</p>
+            </div>
+
+            <div class="scan-instruction">
+                <p>Foto setiap sisi Rubik dari arah depan dengan pencahayaan yang cukup.</p>
+            </div>
+
+            <div class="camera-container">
+                <video id="camera-feed" autoplay playsinline></video>
+                <canvas id="camera-canvas"></canvas>
+                <div class="camera-overlay">
+                    <div class="grid-overlay">
+                        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scan-actions">
+                <button id="btn-open-camera" class="btn btn-primary">📷 Buka Kamera</button>
+                <button id="btn-capture" class="btn btn-secondary hidden">📸 Ambil Foto</button>
+                <label for="file-upload" class="btn btn-outline">🖼️ Upload Foto</label>
+                <input type="file" id="file-upload" accept="image/*" hidden>
+            </div>
+
+            <div id="scan-result" class="scan-result hidden">
+                <h3>Hasil Deteksi</h3>
+                <div class="scan-face-preview" id="scan-face-preview"></div>
+                <div class="scan-result-actions">
+                    <button id="btn-rescan" class="btn btn-sm">🔄 Scan Ulang</button>
+                    <button id="btn-correct" class="btn btn-sm">✏️ Koreksi Warna</button>
+                    <button id="btn-use-result" class="btn btn-sm btn-primary">✓ Gunakan Hasil Ini</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SOLUTION SECTION -->
+        <section id="solution-section" class="section">
+            <div class="section-header">
+                <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
+                <h2>Solusi Rubik</h2>
+            </div>
+
+            <div id="solution-info" class="solution-info hidden">
+                <p class="success-msg">✓ Rubik berhasil dibaca!</p>
+                <button id="btn-find-solution" class="btn btn-primary btn-large">🔍 Cari Solusi</button>
+            </div>
+
+            <div id="solution-output" class="solution-output hidden">
+                <div class="solution-summary">
+                    <h3>Solusi ditemukan!</h3>
+                    <p>Jumlah langkah: <strong id="solution-count">0</strong> gerakan</p>
+                    <div class="solution-algorithm" id="solution-algorithm"></div>
+                    <div class="solution-actions">
+                        <button id="btn-copy-solution" class="btn btn-sm">📋 Salin Solusi</button>
+                        <button id="btn-start-solve" class="btn btn-primary">▶ Mulai Menyelesaikan</button>
+                    </div>
+                </div>
+
+                <!-- 3D Cube -->
+                <div class="cube-3d-container">
+                    <div id="cube-3d-viewport"></div>
+                </div>
+
+                <!-- Step Info -->
+                <div class="step-info">
+                    <div class="step-counter">
+                        <span>Langkah:</span>
+                        <strong id="step-current">0</strong> / <span id="step-total">0</span>
+                    </div>
+                    <div class="step-move">
+                        <span>Gerakan:</span>
+                        <strong id="step-move">-</strong>
+                    </div>
+                    <div class="step-description" id="step-description">-</div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="playback-controls">
+                    <button id="btn-prev" class="btn btn-control">⏮</button>
+                    <button id="btn-play" class="btn btn-control btn-play">▶</button>
+                    <button id="btn-pause" class="btn btn-control hidden">⏸</button>
+                    <button id="btn-next" class="btn btn-control">⏭</button>
+                    <button id="btn-restart" class="btn btn-control">↻</button>
+                </div>
+
+                <!-- Speed Slider -->
+                <div class="speed-control">
+                    <label>Lambat</label>
+                    <input type="range" id="speed-slider" min="100" max="1000" value="400" step="50">
+                    <label>Cepat</label>
+                </div>
+
+                <!-- Manual Move Button -->
+                <div class="manual-move">
+                    <button id="btn-do-move" class="btn btn-primary btn-large">Lakukan Langkah</button>
+                </div>
+
+                <!-- Manual Move Controls -->
+                <details class="move-controls-details">
+                    <summary>Kontrol Manual</summary>
+                    <div class="move-buttons-grid">
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="U">U</button>
+                            <button class="btn btn-move" data-move="U'">U'</button>
+                            <button class="btn btn-move" data-move="U2">U2</button>
+                        </div>
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="D">D</button>
+                            <button class="btn btn-move" data-move="D'">D'</button>
+                            <button class="btn btn-move" data-move="D2">D2</button>
+                        </div>
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="R">R</button>
+                            <button class="btn btn-move" data-move="R'">R'</button>
+                            <button class="btn btn-move" data-move="R2">R2</button>
+                        </div>
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="L">L</button>
+                            <button class="btn btn-move" data-move="L'">L'</button>
+                            <button class="btn btn-move" data-move="L2">L2</button>
+                        </div>
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="F">F</button>
+                            <button class="btn btn-move" data-move="F'">F'</button>
+                            <button class="btn btn-move" data-move="F2">F2</button>
+                        </div>
+                        <div class="move-row">
+                            <button class="btn btn-move" data-move="B">B</button>
+                            <button class="btn btn-move" data-move="B'">B'</button>
+                            <button class="btn btn-move" data-move="B2">B2</button>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- History -->
+                <div class="history-section">
+                    <h4>Riwayat Gerakan</h4>
+                    <div id="move-history" class="move-history">-</div>
+                </div>
+
+                <!-- Scramble -->
+                <div class="scramble-section">
+                    <button id="btn-scramble" class="btn btn-outline">🎲 Acak Rubik</button>
+                    <div id="scramble-output" class="scramble-output hidden">
+                        <p>Scramble: <code id="scramble-text"></code></p>
+                        <button id="btn-solve-scramble" class="btn btn-sm btn-primary">Selesaikan Scramble</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notasi -->
+            <details class="notation-details">
+                <summary>📖 Notasi Rubik</summary>
+                <div class="notation-content">
+                    <p><strong>U</strong> = Up (Atas) | <strong>D</strong> = Down (Bawah)</p>
+                    <p><strong>R</strong> = Right (Kanan) | <strong>L</strong> = Left (Kiri)</p>
+                    <p><strong>F</strong> = Front (Depan) | <strong>B</strong> = Back (Belakang)</p>
+                    <p><strong>'</strong> = putar berlawanan arah jarum jam</p>
+                    <p><strong>2</strong> = putar 2 kali (180°)</p>
+                </div>
+            </details>
+        </section>
+
+        <!-- HELP SECTION -->
+        <section id="help-section" class="section">
+            <div class="section-header">
+                <button class="btn btn-back" onclick="app.goHome()">← Kembali</button>
+                <h2>Cara Menggunakan</h2>
+            </div>
+            <div class="help-content">
+                <h3>1. Input Manual</h3>
+                <p>Pilih warna dari color picker, lalu klik setiap sticker pada grid 2D untuk mengisi warna. Pastikan warna center sesuai dengan orientasi standar (Putih atas, Kuning bawah, Hijau depan, Biru belakang, Merah kanan, Oranye kiri).</p>
+                
+                <h3>2. Scan Rubik</h3>
+                <p>Gunakan kamera atau upload foto untuk setiap sisi. Sistem akan mencoba mendeteksi warna, tetapi Anda selalu bisa mengoreksi hasilnya secara manual.</p>
+                
+                <h3>3. Mencari Solusi</h3>
+                <p>Setelah semua 54 sticker terisi dan valid, klik "Cari Solusi". Algoritma solver akan menghitung langkah penyelesaian yang benar.</p>
+                
+                <h3>4. Menyelesaikan</h3>
+                <p>Gunakan mode otomatis (Play) atau manual (Lakukan Langkah) untuk menyelesaikan Rubik. Rubik 3D akan menunjukkan layer mana yang diputar.</p>
+
+                <h3>Notasi Rubik</h3>
+                <ul>
+                    <li><strong>U</strong> = Atas (Up)</li>
+                    <li><strong>D</strong> = Bawah (Down)</li>
+                    <li><strong>R</strong> = Kanan (Right)</li>
+                    <li><strong>L</strong> = Kiri (Left)</li>
+                    <li><strong>F</strong> = Depan (Front)</li>
+                    <li><strong>B</strong> = Belakang (Back)</li>
+                    <li><strong>'</strong> = berlawanan jarum jam</li>
+                    <li><strong>2</strong> = 180°</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- COMPLETION MODAL -->
+        <div id="completion-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-emoji">🎉</div>
+                <h2>Rubik berhasil diselesaikan!</h2>
+                <div class="modal-actions">
+                    <button id="btn-solve-again" class="btn btn-primary">🔄 Selesaikan Lagi</button>
+                    <button id="btn-scramble-again" class="btn btn-secondary">🎲 Acak Lagi</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Rubik Solver 3x3 &copy; 2024</p>
+    </footer>
+
+    <script src="js/cube.js"></script>
+    <script src="js/validator.js"></script>
+    <script src="js/solver.js"></script>
+    <script src="js/cube3d.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
